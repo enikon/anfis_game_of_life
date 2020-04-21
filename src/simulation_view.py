@@ -14,11 +14,10 @@ class SimulationView:
         self.collect()
 
     def supply(self, food_value, water_value):
-        self.simulation.food = food_value
-        self.simulation.water = water_value
+        self.simulation.resourceLevels = [food_value]
 
     def collect(self):
-        (prey_i, predator_i) = self.simulation.get()
+        [prey_i, predator_i] = self.simulation.get()
         self.prey.    append(prey_i)
         self.predator.append(predator_i)
         self.linear  .append(self.K)
