@@ -22,7 +22,7 @@ class SimState:
         self.resourceLevels = [10000.0]
         self.entityCrossMatrix = [
             [(0.4, 0.1), (0.0, 0.0)],  # prey
-            [(0.00002, 0.25), (0.0, 0.2)]  # predator
+            [(0.00002, 1.0), (0.6, 0.8)]  # predator
         ]
         # ECM[x][x] = (reproduction, decline)
         # ECM[x][y] = (hunt factor, consumption factor)
@@ -112,7 +112,12 @@ class SimState:
             for j in range(len(self.entityCount)):
                 self.entityCount[j] += futureBalance[j] * self.accuracy
 
-        # discretise numbers
+            # update resources numbers
+            for r in range(len(self.resourceLevels)):
+                self.resourceLevels[r] -= resourcesDemand[r] * self.accuracy
+                self.resourceLevels[r] = max(0.0, self.resourceLevels[r])
+
+        # discretise individuals numbers
         for j in range(len(self.entityCount)):
             self.entityCount[j] = int(round(max(0.0, self.entityCount[j])))
             if self.entityCount[j] < self.speciesThreshold:

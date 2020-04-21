@@ -69,14 +69,14 @@ def plot():
 # //////////
 
 food_axis = plt.axes([0.05, 0.10, 0.85, 0.03], facecolor='lightgreen')
-food_slider = Slider(food_axis, 'Food', 0.999, 5.0, valinit=0.0, facecolor='green', dragging=True)
+food_slider = Slider(food_axis, 'Food', 0.999, 7.0, valinit=0.0, facecolor='green', dragging=True)
 
 
 def foodSliderToFood(value):
     food_set = 0
     if value >= 1.0:
         #food_set = int(value* 10000 / 5)
-        food_set = utils.float2log10int(value*2)
+        food_set = utils.float2log10int(value)
     return food_set
 
 
