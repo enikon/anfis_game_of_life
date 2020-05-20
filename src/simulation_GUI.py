@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 from matplotlib.widgets import Slider, Button
 
 import utils
+import simulation_model
 from simulation_view import SimulationView
 
 
@@ -63,13 +64,21 @@ def plot():
 
     second_plot.set_yticks(ticks=np.arange(0, max_y_lv_predator, step=utils.findFairTick(max_y_lv_predator, 10, A_agreeable_tick_size)))
 
+# //////////
+#   ANFIS
+# //////////
+
+
+model = simulation_model.createModel()
 
 # //////////
 #   SLIDER
 # //////////
 
+food_min = 0.999
+food_max = 7.0
 food_axis = plt.axes([0.05, 0.10, 0.85, 0.03], facecolor='lightgreen')
-food_slider = Slider(food_axis, 'Food', 0.999, 7.0, valinit=0.0, facecolor='green', dragging=True)
+food_slider = Slider(food_axis, 'Food', food_min, food_max, valinit=0.0, facecolor='green', dragging=True)
 
 
 def foodSliderToFood(value):
@@ -86,6 +95,12 @@ def updateSlider(value):
     figure.canvas.draw_idle()
 
 
+def updateFoodWithModel():
+    food = simulation_model.executeModel(model, sv.simulation.get())
+    food = np.clip(food, food_min, food_max)
+    food_slider.set_val(food)
+
+
 updateSlider(food_slider.valinit)
 food_slider.on_changed(updateSlider)
 
@@ -99,7 +114,10 @@ next_button = Button(next_axis, 'Next', color='powderblue', hovercolor='blue')
 
 def next_step(event, **kwargs):
     count = kwargs.get('count', 1)
+    update_food = kwargs.get('update_food', False)
     for i in range(count):
+        if update_food:
+            updateFoodWithModel()
         sv.step(
             foodSliderToFood(food_slider.val),
             0)
@@ -119,6 +137,8 @@ def handle_pressed_keyboard(event):
         next_step(event, count=1)
     if event.key == 'm':
         next_step(event, count=10)
+    if event.key == 'a':
+        next_step(event, count=1, update_food=True)
 
 
 figure.canvas.mpl_connect('key_press_event', handle_pressed_keyboard)
