@@ -69,7 +69,7 @@ def plot():
 # //////////
 
 
-model = simulation_model.createModel()
+model = simulation_model.loadModel()
 
 # //////////
 #   SLIDER

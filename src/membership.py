@@ -101,11 +101,11 @@ class TriangularMembFunc(torch.nn.Module):
 
     def forward(self, x):
         return torch.where(
-            torch.ByteTensor(self.a < x) & torch.ByteTensor(x <= self.b),
+            torch.BoolTensor(self.a < x) & torch.BoolTensor(x <= self.b),
             (x - self.a) / (self.b - self.a),
             # else
             torch.where(
-                torch.ByteTensor(self.b < x) & torch.ByteTensor(x <= self.c),
+                torch.BoolTensor(self.b < x) & torch.BoolTensor(x <= self.c),
                 (self.c - x) / (self.c - self.b),
                 torch.zeros_like(x, requires_grad=True)))
 
