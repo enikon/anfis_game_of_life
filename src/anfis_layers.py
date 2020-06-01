@@ -145,3 +145,34 @@ class RulesLayer(layers.Layer):
         base_config['fuzzy_sets_count'] = self.fuzzy_sets_count
         base_config['output_dim'] = self.units
         return base_config
+
+
+class SumNormalisationLayer(layers.Layer):
+    def __init__(self, target_sum=1.0, **kwargs):
+        """Normalisation layer for ANFIS.
+
+          Args:
+            target_sum: all weights will sum to this value
+
+        """
+        super(SumNormalisationLayer, self).__init__(**kwargs)
+        self.target_sum = target_sum
+        self.units = None
+
+    def build(self, input_shape):
+        # tensorflow reported bug troubleshooting  https://stackoverflow.com/questions/56094714/how-can-i-call-a-custom-layer-in-keras-with-the-functional-api
+        input_shape = input_shape.as_list()
+        if input_shape[1] < 1:
+            raise Exception('FuzzificationLayer', '\'input_size\' must be at least 1.')
+        self.units = input_shape[1]
+
+    def call(self, inputs, **kwargs):
+        summed = tf.math.reduce_sum(inputs, 1)
+        return inputs/summed
+
+    def get_config(self):
+        # for serialisation only, in case we want to save model directly
+        base_config = super(SumNormalisationLayer, self).get_config()
+        base_config['target_sum'] = self.target_sum
+        base_config['output_dim'] = self.units
+        return base_config
