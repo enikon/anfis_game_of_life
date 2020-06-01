@@ -1,5 +1,5 @@
 from tensorflow.keras.layers import Input
-from anfis_layers import FuzzificationLayer, RulesLayer, SumNormalisationLayer
+from anfis_layers import FuzzificationLayer, RulesLayer, SumNormalisationLayer, DefuzzificationLayer
 import tensorflow as tf
 
 # reset console, just in case
@@ -18,4 +18,7 @@ f2 = RulesLayer(fuzzy_sets_count=fuzzy_sets_count)(f1)
 
 # normalise values to 1.0 for each node
 f3 = SumNormalisationLayer()(f2)
+
+# defuzzification layer
+f4 = DefuzzificationLayer()([f0, f3])
 a = 1
