@@ -31,6 +31,7 @@ data_output = tf.convert_to_tensor(
      [0.5], [0.6],
      [0.1], [0.0]])
 
-b = train_step(anfis, forward, data_input, data_output)
+anfis.compile(loss=root_mean_squared_error, optimizer=tf.keras.optimizers.SGD(), metrics =["accuracy"])
+train_anfis(anfis, forward, data_input, data_output, epochs=1, batch_size=2)
 
 a = 1
