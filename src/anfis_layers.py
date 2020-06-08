@@ -65,16 +65,19 @@ class FuzzificationLayer(layers.Layer):
         # a (sigma width) - width, 0-1
         self.a = self.add_weight(shape=(self.units,), trainable=True,
                                  initializer=initializers.constant(width),
-                                 constraint=constraints.MinMaxNorm(min_value=0.0, max_value=1.0))
+                                 constraint=constraints.MinMaxNorm(min_value=0.0, max_value=1.0),
+                                 regularizer=tf.keras.regularizers.l2(l=0.05))
 
         # b (sigma 1/height) - slope, 0-1
         self.b = self.add_weight(shape=(self.units,), trainable=True,
                                  initializer=initializers.constant(0.5),
-                                 constraint=constraints.MinMaxNorm(min_value=0.0, max_value=1.0))
+                                 constraint=constraints.MinMaxNorm(min_value=0.0, max_value=1.0),
+                                 regularizer = tf.keras.regularizers.l2(l=0.05))
         # c (mu) - mean, 0-1
         self.c = self.add_weight(shape=(self.units,), trainable=True,
                                  initializer=initializers.constant(location),
-                                 constraint=constraints.MinMaxNorm(min_value=0.0, max_value=1.0))
+                                 constraint=constraints.MinMaxNorm(min_value=0.0, max_value=1.0),
+                                 regularizer=tf.keras.regularizers.l2(l=0.05))
 
     def call(self, inputs, **kwargs):
         # comp = 1/(1+abs((x-c)/a)^(2/b)))
@@ -213,7 +216,8 @@ class DefuzzificationLayer(layers.Layer):
 
         self.p = self.add_weight(shape=(self.units, self.input_values), trainable=False,
                                  initializer=initializers.zeros(),
-                                 constraint=constraints.MinMaxNorm(min_value=-1.0, max_value=1.0))
+                                 constraint=constraints.MinMaxNorm(min_value=-1.0, max_value=1.0),
+                                 regularizer=tf.keras.regularizers.l2(l=0.05))
         # self.p = self.add_weight(shape=(self.units, 1 + self.input_values), trainable=False,
         #                          initializer=initializers.glorot_normal(),
         #                          constraint=constraints.MinMaxNorm(min_value=-1.0, max_value=1.0))
