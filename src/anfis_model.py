@@ -1,11 +1,11 @@
 import tensorflow as tf
 
 
-@tf.function
-def backward_pass(model, loss,  inputs, outputs):
+#@tf.function
+def backward_pass(model, inputs, outputs):
     with tf.GradientTape() as tape:
         result = model(inputs)
-        loss_result = loss(outputs, result)
+        loss_result = model.loss(outputs, result)
 
     # Compute gradients
     trainable_vars = model.trainable_variables
@@ -18,8 +18,14 @@ def backward_pass(model, loss,  inputs, outputs):
     # return {m.name: m.result() for m in model.metrics}
 
 
-@tf.function
-def forward_step(model, forward, inputs, outputs):
+#@tf.function
+def forward_step(model, forward, inputs, outputs, learning_rate, dummy):
+
+    dmy0 = dummy[0](inputs)
+    dmy1 = dummy[1](inputs)
+    dmy2 = dummy[2](inputs)
+    dmy3 = dummy[3](inputs)
+    dmy4 = dummy[4](inputs)
 
     wsr = forward(inputs)
     _units = model.layers[4].units
@@ -35,12 +41,14 @@ def forward_step(model, forward, inputs, outputs):
         l2_regularizer=tf.constant(0.08)
     )
     collective_result = tf.reduce_mean(tf.reshape(result, shape=[-1, _units, _vals]), axis=0, keepdims=False)
-    model.layers[4].p.assign(collective_result)
+    model_variable = model.non_trainable_variables[0]
+    delta = tf.subtract(collective_result, model_variable)*learning_rate
+    model.layers[4].p.assign_add(delta)
 
     return collective_result
 
 
-def train_anfis(model, forward, inputs, outputs, epochs, batch_size, loss):
+def train_anfis(model, forward, inputs, outputs, epochs, batch_size, learning_rate, dummy):
 
     input_size = inputs.shape[0]
     indices = tf.range(start=0, limit=input_size, dtype=tf.int32)
@@ -63,8 +71,11 @@ def train_anfis(model, forward, inputs, outputs, epochs, batch_size, loss):
         num_batches = len(batched_inputs)
 
         for j in range(num_batches):
-            forward_step(model, forward, batched_inputs[j], batched_outputs[j])
-            backward_pass(model, loss,  batched_inputs[j], batched_outputs[j])
+            if j % 2 == 0:
+                forward_step(model, forward, batched_inputs[j], batched_outputs[j],
+                             learning_rate=learning_rate, dummy=dummy)
+            else:
+                backward_pass(model, batched_inputs[j], batched_outputs[j])
 
 
 def train_anfis_ng(model, forward, inputs, outputs, epochs, batch_size):

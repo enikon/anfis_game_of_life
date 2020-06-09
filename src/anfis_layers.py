@@ -72,7 +72,7 @@ class FuzzificationLayer(layers.Layer):
         self.b = self.add_weight(shape=(self.units,), trainable=True,
                                  initializer=initializers.constant(0.5),
                                  constraint=constraints.MinMaxNorm(min_value=0.0, max_value=1.0),
-                                 regularizer = tf.keras.regularizers.l2(l=0.05))
+                                 regularizer=tf.keras.regularizers.l2(l=0.05))
         # c (mu) - mean, 0-1
         self.c = self.add_weight(shape=(self.units,), trainable=True,
                                  initializer=initializers.constant(location),
@@ -84,7 +84,7 @@ class FuzzificationLayer(layers.Layer):
         # used Bell equation
         #   2/b instead of 2b for normalisation purpose
         # tf.repeat allows to expand input to fuzzy set count
-        return 1 / (1 + tf.pow(tf.abs((tf.repeat(inputs, self.fuzzy_sets_count, axis=1) - self.c) / self.a), 2 / self.b))
+        return 1.0 / (1.0 + tf.pow(tf.pow(tf.abs((tf.repeat(inputs, self.fuzzy_sets_count, axis=1) - self.c) / self.a), 2.0), 1.0 / self.b))
 
     def get_config(self):
         # for serialisation only, in case we want to save model directly
@@ -215,8 +215,8 @@ class DefuzzificationLayer(layers.Layer):
         self.input_values = input_values_shape[1]+1
 
         self.p = self.add_weight(shape=(self.units, self.input_values), trainable=False,
-                                 initializer=initializers.zeros(),
-                                 constraint=constraints.MinMaxNorm(min_value=-1.0, max_value=1.0),
+                                 initializer=initializers.constant(value=1.0/self.input_values),
+                                 #constraint=constraints.MinMaxNorm(min_value=-1.0, max_value=1.0),
                                  regularizer=tf.keras.regularizers.l2(l=0.05))
         # self.p = self.add_weight(shape=(self.units, 1 + self.input_values), trainable=False,
         #                          initializer=initializers.glorot_normal(),
