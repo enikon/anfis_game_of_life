@@ -1,7 +1,7 @@
 import tensorflow as tf
 
 
-#@tf.function
+@tf.function
 def backward_pass(model, inputs, outputs):
     with tf.GradientTape() as tape:
         result = model(inputs)
@@ -18,14 +18,14 @@ def backward_pass(model, inputs, outputs):
     # return {m.name: m.result() for m in model.metrics}
 
 
-#@tf.function
+@tf.function
 def forward_step(model, forward, inputs, outputs, learning_rate, dummy):
 
-    dmy0 = dummy[0](inputs)
-    dmy1 = dummy[1](inputs)
-    dmy2 = dummy[2](inputs)
-    dmy3 = dummy[3](inputs)
-    dmy4 = dummy[4](inputs)
+    # dmy0 = dummy[0](inputs)
+    # dmy1 = dummy[1](inputs)
+    # dmy2 = dummy[2](inputs)
+    # dmy3 = dummy[3](inputs)
+    # dmy4 = dummy[4](inputs)
 
     wsr = forward(inputs)
     _units = model.layers[4].units
@@ -38,8 +38,9 @@ def forward_step(model, forward, inputs, outputs, learning_rate, dummy):
     result = tf.linalg.lstsq(
         tf.reshape(target, shape=[-1, 1, _units*_vals]),
         tf.expand_dims(outputs, axis=-1),
-        l2_regularizer=tf.constant(0.08)
+        l2_regularizer=tf.constant(0.8)
     )
+
     collective_result = tf.reduce_mean(tf.reshape(result, shape=[-1, _units, _vals]), axis=0, keepdims=False)
     model_variable = model.non_trainable_variables[0]
     delta = tf.subtract(collective_result, model_variable)*learning_rate
@@ -71,11 +72,11 @@ def train_anfis(model, forward, inputs, outputs, epochs, batch_size, learning_ra
         num_batches = len(batched_inputs)
 
         for j in range(num_batches):
-            if j % 2 == 0:
-                forward_step(model, forward, batched_inputs[j], batched_outputs[j],
-                             learning_rate=learning_rate, dummy=dummy)
-            else:
-                backward_pass(model, batched_inputs[j], batched_outputs[j])
+            #if j % 2 == 0:
+            forward_step(model, forward, batched_inputs[j], batched_outputs[j],
+                         learning_rate=learning_rate, dummy=dummy)
+            #else:
+            backward_pass(model, batched_inputs[j], batched_outputs[j])
 
 
 def train_anfis_ng(model, forward, inputs, outputs, epochs, batch_size):

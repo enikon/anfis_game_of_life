@@ -11,6 +11,7 @@ Axes3D = Axes3D  # pycharm auto import
 tf.keras.backend.clear_session()
 
 np.random.seed(0)
+np.set_printoptions(precision=3, suppress=True)
 
 
 def func(x, y):
@@ -53,10 +54,11 @@ anfis.compile(loss=tf.metrics.MAE,
               optimizer=tf.keras.optimizers.SGD(
                   clipnorm=0.5,
                   learning_rate=1e-4),
-              metrics=["accuracy"])
+              metrics=["accuracy"]) # Zmienic na RMSE czy cos
+
 train_anfis(anfis, forward, data_input, data_output,
             epochs=10, batch_size=1,
-            learning_rate=1e-2,
+            learning_rate=1-1e-4,
             dummy=[
                 tf.keras.Model(inputs=f0, outputs=f0),
                 tf.keras.Model(inputs=f0, outputs=f1),
