@@ -217,7 +217,7 @@ class DefuzzificationLayer(layers.Layer):
         self.p = self.add_weight(shape=(self.units, self.input_values), trainable=False,
                                  initializer=initializers.constant(value=1.0/self.input_values),
                                  #constraint=constraints.MinMaxNorm(min_value=-1.0, max_value=1.0),
-                                 regularizer=tf.keras.regularizers.l2(l=0.05))
+                                 regularizer=tf.keras.regularizers.l2(l=0.5))
         # self.p = self.add_weight(shape=(self.units, 1 + self.input_values), trainable=False,
         #                          initializer=initializers.glorot_normal(),
         #                          constraint=constraints.MinMaxNorm(min_value=-1.0, max_value=1.0))
