@@ -1,12 +1,12 @@
 from typing import Any, Tuple
-
+import math
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.widgets import Slider, Button
 
 import utils
 from simulation_view import SimulationView
-
+from simulation_model import SimulationModel
 
 # ///////////////
 #   GUI - INIT
@@ -14,6 +14,7 @@ from simulation_view import SimulationView
 
 A_agreeable_tick_size = [1, 2, 4, 5, 10, 20, 25, 40, 50, 75]
 sv = SimulationView()
+sm = SimulationModel(sv.simulation.get_inversion())
 
 plt_line_width = 1
 plt_mark_size = 0.8
@@ -59,7 +60,7 @@ def plot():
     max_x_lv_prey = max(sv.prey)*1.1
     max_y_lv_predator = max(sv.predator)*1.1
     second_plot.set_xticks(ticks=np.arange(0, max_x_lv_prey, step=utils.findFairTick(max_x_lv_prey, 10, A_agreeable_tick_size)))
-    second_plot.tick_params(axis='x',rotation=x_ticks_rotation)
+    second_plot.tick_params(axis='x', rotation=x_ticks_rotation)
 
     second_plot.set_yticks(ticks=np.arange(0, max_y_lv_predator, step=utils.findFairTick(max_y_lv_predator, 10, A_agreeable_tick_size)))
 
@@ -80,13 +81,17 @@ def foodSliderToFood(value):
     return food_set
 
 
+def setSlider(value):
+    food_slider.set_val(value)
+
+
 def updateSlider(value):
     food_set = foodSliderToFood(value)
     food_slider.valtext.set_text(utils.significantFormat(food_set))
     figure.canvas.draw_idle()
 
 
-updateSlider(food_slider.valinit)
+setSlider(food_slider.valinit)
 food_slider.on_changed(updateSlider)
 
 # /////////
@@ -100,9 +105,20 @@ next_button = Button(next_axis, 'Next', color='powderblue', hovercolor='blue')
 def next_step(event, **kwargs):
     count = kwargs.get('count', 1)
     for i in range(count):
-        sv.step(
-            foodSliderToFood(food_slider.val),
-            0)
+
+        food = foodSliderToFood(food_slider.val)
+        sv.step(food, 0)
+
+        obs = sv.get()
+        obs_scaled = [((math.log(o, 10)-1)/6 if o > 0 else 0) for o in obs]
+        action_scaled = sm.act(obs_scaled)
+        action_slider = [a*6+1 for a in action_scaled]
+        suggestion = math.pow(10, action_slider[0])
+        print(suggestion)
+        print(obs)
+        print(sv.simulation.step_function([suggestion*1.1]))
+        setSlider(action_slider[0])
+
     plot()
     plt.draw()
 
@@ -126,3 +142,5 @@ figure.canvas.mpl_connect('key_press_event', handle_pressed_keyboard)
 
 plot()
 plt.show()
+
+print("STOP")

@@ -13,9 +13,12 @@ class SimulationView:
 
         self.collect()
 
+    def get(self):
+        return self.simulation.get()
+
     def supply(self, food_value, water_value):
-        self.simulation.resourceLevels[0] += food_value
-        #self.simulation.resourceLevels = [food_value]
+        #self.simulation.resourceLevels[0] += food_value
+        self.simulation.resourceLevels = [food_value]
 
     def collect(self):
         [prey_i, predator_i] = self.simulation.get()

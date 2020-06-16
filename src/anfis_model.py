@@ -21,18 +21,15 @@ def backward_pass(model, inputs, outputs):
 
 
 @tf.function
-def forward_step(model, forward, inputs, outputs, learning_rate, dummy=None):
+def forward_step(models, inputs, outputs, learning_rate):
 
-    if dummy is not None:
-        dmy0 = dummy[0](inputs)
-        dmy1 = dummy[1](inputs)
-        dmy2 = dummy[2](inputs)
-        dmy3 = dummy[3](inputs)
-        dmy4 = dummy[4](inputs)
+    weights = {}
+    for m_key in models:
+        weights[m_key] = models[m_key](inputs)
 
-    wsr = forward(inputs)
-    _units = model.layers[4].units
-    _vals = model.layers[4].input_values
+    wsr = weights["forward"]
+    _units = models["anfis"].layers[4].units
+    _vals = models["anfis"].layers[4].input_values
 
     padding = tf.constant([[0, 0], [0, 1]])
     xin = tf.pad(inputs, paddings=padding, mode="CONSTANT", constant_values=1.0)
@@ -46,15 +43,15 @@ def forward_step(model, forward, inputs, outputs, learning_rate, dummy=None):
 
     result = tf.reshape(result, shape=[-1, _units, _vals])
     collective_result = tf.reduce_mean(result, axis=0, keepdims=False)
-    model_variable = model.non_trainable_variables[0]
+    model_variable = models["anfis"].non_trainable_variables[0]
     delta = tf.subtract(collective_result, model_variable)*learning_rate
-    result_delta = tf.add(model.layers[4].p, delta)
-    model.layers[4].p.assign(result_delta)
+    result_delta = tf.add(models["anfis"].layers[4].p, delta)
+    models["anfis"].layers[4].p.assign(result_delta)
 
     return result
 
 
-def train_anfis(model, forward, inputs, outputs, epochs, batch_size, learning_rate, dummy=None):
+def train_anfis(models, inputs, outputs, epochs, batch_size, learning_rate):
 
     input_size = inputs.shape[0]
     indices = tf.range(start=0, limit=input_size, dtype=tf.int32)
@@ -76,6 +73,6 @@ def train_anfis(model, forward, inputs, outputs, epochs, batch_size, learning_ra
         batched_outputs = tf.split(shuffled_outputs, split, axis=0)
         num_batches = len(batched_inputs)
 
-        forward_step(model, forward, inputs, outputs, learning_rate=learning_rate, dummy=dummy)
+        forward_step(models, inputs, outputs, learning_rate=learning_rate)
         for j in range(num_batches):
-            backward_pass(model, batched_inputs[j], batched_outputs[j])
+            backward_pass(models["anfis"], batched_inputs[j], batched_outputs[j])
