@@ -2,8 +2,8 @@ from simulation import SimState
 
 
 class SimulationView:
-    def __init__(self):
-        self.simulation = SimState()
+    def __init__(self, entities=None):
+        self.simulation = SimState(entities)
 
         self.prey = []
         self.predator = []
@@ -30,4 +30,13 @@ class SimulationView:
     def step(self, food_value, water_value):
         self.supply(food_value, water_value)
         self.simulation.step()
+        self.collect()
+
+    def reset(self, entities):
+        self.simulation = SimState(entities)
+        self.prey = []
+        self.predator = []
+        self.linear = []
+
+        self.K = 0
         self.collect()

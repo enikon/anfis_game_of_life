@@ -76,7 +76,6 @@ food_slider = Slider(food_axis, 'Food', 0.999, 7.0, valinit=0.0, facecolor='gree
 def foodSliderToFood(value):
     food_set = 0
     if value >= 1.0:
-        #food_set = int(value* 10000 / 5)
         food_set = utils.float2log10int(value)
     return food_set
 
@@ -106,17 +105,25 @@ def next_step(event, **kwargs):
     count = kwargs.get('count', 1)
     for i in range(count):
 
-        food = foodSliderToFood(food_slider.val)
+        #TODO MAKE MORE PRIVATE FIELDS/METHODS IN CLASSES
+
+        #TODO GUI VALUE 1.0-7.0
+        #TODO GUI->INTERF 10K
+        #TODO GUI->SIM 10K
+        #TODO GUI->MODEL 0-1
+
+        food = foodSliderToFood(food_slider.val)# TODO NORMALISATION AS FUNCTION
         sv.step(food, 0)
 
+        #TODO NORMALISATION INSIDE SM.ACT SM.ACT INTO NEW METHOD SM.DECIDE???
         obs = sv.get()
         obs_scaled = [((math.log(o, 10)-1)/6 if o > 0 else 0) for o in obs]
-        action_scaled = sm.act(obs_scaled)
+        action_scaled = sm.act(obs_scaled) #TODO NORMALISATION AS FUNCTION
         action_slider = [a*6+1 for a in action_scaled]
         suggestion = math.pow(10, action_slider[0])
         print(suggestion)
         print(obs)
-        print(sv.simulation.step_function([suggestion*1.1]))
+        print(sv.simulation.step_function(obs, [suggestion*1.1]))
         setSlider(action_slider[0])
 
     plot()
@@ -124,6 +131,16 @@ def next_step(event, **kwargs):
 
 
 next_button.on_clicked(next_step)
+
+
+def reset(entities):
+    global marker_index
+    marker_index = 0
+    first_plot.cla()
+    second_plot.cla()
+    sv.reset(entities)
+    plot()
+
 
 # /////////
 #   KEYBOARD INPUT
@@ -135,6 +152,10 @@ def handle_pressed_keyboard(event):
         next_step(event, count=1)
     if event.key == 'm':
         next_step(event, count=10)
+    if event.key == 'r':
+        a = 9000
+        b = 300
+        reset([a, b])
 
 
 figure.canvas.mpl_connect('key_press_event', handle_pressed_keyboard)

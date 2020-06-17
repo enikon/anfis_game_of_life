@@ -71,7 +71,7 @@ class SimulationModel:
         dout = []
         for i in range(input_data_size):
             x = list(np.random.uniform(0.0, 1.0, size=2))
-            x.sort(reverse=True)
+            x.sort(reverse=True) #TODO BETTER GENERATOR
             din.append(x)
             y = self.normalisation_function(x)
             dout.append([y])
