@@ -1,14 +1,15 @@
 from simulation import SimState
+import numpy as np
 
 
 class SimulationView:
     def __init__(self, entities=None):
         self.simulation = SimState(entities)
 
-        self.prey = []
-        self.predator = []
+        self.prey = np.empty(shape=0)
+        self.predator = np.empty(shape=0)
 
-        self.linear = []
+        self.linear = np.empty(shape=0)
         self.K = 0
 
         self.collect()
@@ -22,9 +23,9 @@ class SimulationView:
 
     def collect(self):
         [prey_i, predator_i] = self.simulation.get()
-        self.prey.    append(prey_i)
-        self.predator.append(predator_i)
-        self.linear  .append(self.K)
+        self.prey     = np.append(self.prey, [prey_i])
+        self.predator = np.append(self.predator, [predator_i])
+        self.linear   = np.append(self.linear, [self.K])
         self.K += 1
 
     def step(self, food_value, water_value):
@@ -34,9 +35,9 @@ class SimulationView:
 
     def reset(self, entities):
         self.simulation = SimState(entities)
-        self.prey = []
-        self.predator = []
-        self.linear = []
+        self.prey = np.empty(shape=0)
+        self.predator = np.empty(shape=0)
+        self.linear = np.empty(shape=0)
 
         self.K = 0
         self.collect()

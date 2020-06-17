@@ -127,7 +127,7 @@ class SimState:
                     else:
                         resourceInfluence = resources[r] * self.resourceCrossMatrix[j][r][0]
                         liebigBarrel = min(liebigBarrel,
-                                           (resourceInfluence / (resourcesDemand[r] + resourceInfluence)))
+                                           (resourceInfluence / (resourcesDemand[r] + resourceInfluence))) if resourceInfluence > 0 else 0
 
                 # applying Lotka-Volterra
                 futureBalance[j] = \
@@ -154,9 +154,11 @@ class SimState:
             if num_prey < 10000:
                 food = -(num_prey*(num_prey*(num_pred-45000)+500000000))/(num_prey*(num_pred - 65000)+500000000)
                 if food <= 0:
-                    food = num_prey*12
+                    food = num_prey*num_prey/num_pred
+                    if self.step_function([num_prey, num_pred], [food])[0][0] > 10000:
+                        food = (2.0 - num_prey/10000)*num_prey
             else:
-                food = num_prey*1/0.8
+                food = -10000*(num_pred+5000)/(num_pred-15000)
 
             if food <= 0:
                 food = 0

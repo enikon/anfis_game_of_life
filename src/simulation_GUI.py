@@ -41,7 +41,7 @@ def plot():
     first_plot.plot(sv.linear, sv.predator, 'o-', color='red', linewidth=plt_line_width, markersize=plt_mark_size)
     first_plot.set_yscale("log")
 
-    ticks_range = max(max(sv.prey), max(sv.predator))
+    ticks_range = max(np.max(sv.prey), np.max(sv.predator))
     first_plot.set_xticks(ticks=np.arange(0, sv.K + 1, step=utils.findFairTick(sv.K, 10, A_agreeable_tick_size)))
     first_plot.tick_params(axis='x', labelrotation=x_ticks_rotation)
 
@@ -57,8 +57,8 @@ def plot():
     marker_index = sv.K-1
     second_plot.plot(sv.prey[marker_index:marker_index+1],   sv.predator[marker_index:marker_index+1],   'ko-', color='orange')
 
-    max_x_lv_prey = max(sv.prey)*1.1
-    max_y_lv_predator = max(sv.predator)*1.1
+    max_x_lv_prey = np.max(sv.prey)*1.1
+    max_y_lv_predator = np.max(sv.predator)*1.1
     second_plot.set_xticks(ticks=np.arange(0, max_x_lv_prey, step=utils.findFairTick(max_x_lv_prey, 10, A_agreeable_tick_size)))
     second_plot.tick_params(axis='x', rotation=x_ticks_rotation)
 
