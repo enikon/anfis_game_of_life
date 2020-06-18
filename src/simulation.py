@@ -23,7 +23,7 @@ class SimState:
 
         # entities: preyCount, predatorCount
         self.entityCount = entities
-        self.resourceLevels = [10000.0]
+        self.resourceLevels = [0.0]
         self.entityCrossMatrix = [
             [(0.4, 0.1), (0.0, 0.0)],  # prey
             [(0.00002, 1.0), (0.0, 0.2)]  # predator
@@ -168,7 +168,7 @@ class SimState:
 
             npy, npd = self.step_function([num_prey, num_pred], [food])
 
-            if food <= 0:
+            if food <= 10:
                 food = 0
             else:
                 food = (math.log(food, 10)-1.0)/6

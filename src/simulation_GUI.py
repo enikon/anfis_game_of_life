@@ -153,9 +153,11 @@ def handle_pressed_keyboard(event):
     if event.key == 'm':
         next_step(event, count=10)
     if event.key == 'r':
-        a = 9000
-        b = 300
-        reset([a, b])
+        a = np.random.uniform(2.0, 5.0)
+        b = np.random.uniform(1.0, a-0.3)
+
+        reset([10**a, 10**b])
+        next_step(event, count=100)
 
 
 figure.canvas.mpl_connect('key_press_event', handle_pressed_keyboard)
