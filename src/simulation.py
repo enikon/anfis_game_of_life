@@ -14,16 +14,18 @@ class RESOURCES(Enum):
 
 
 class SimState:
-    def __init__(self, entities=None):
+    def __init__(self, entities=None, resources=None):
 
         if entities is None:
             entities = [8000., 2000.]
+        if resources is None:
+            resources = [0.]
 
         self.huntedDoNotFeed = False  # remove killed animals before feeding phase
 
         # entities: preyCount, predatorCount
         self.entityCount = entities
-        self.resourceLevels = [0.0]
+        self.resourceLevels = resources
         self.entityCrossMatrix = [
             [(0.4, 0.1), (0.0, 0.0)],  # prey
             [(0.00002, 1.0), (0.0, 0.2)]  # predator
@@ -140,8 +142,11 @@ class SimState:
 
         return futureBalance, resourcesDemand
 
-    def get(self):
+    def getEntities(self):
         return self.entityCount.copy()
+
+    def getResources(self):
+        return self.resourceLevels.copy()
 
     # TODO ADD ACCESS DECORATORS
     #HEURISTIC
