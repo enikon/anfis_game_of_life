@@ -21,17 +21,19 @@ class SimulationView:
         self.linear = np.empty(shape=0)
         self.K = 0
 
-    def get(self):
-        return self.simulation.getEntities()
+        self._collect()
 
-    def supply(self, resources):
+    def get(self):
+        return [self.simulation.getEntities(), self.simulation.getResources()]
+
+    def _supply(self, resources):
         self.decision = resources.copy()
         food_value, water_value = resources
 
         #self.simulation.resourceLevels[0] += food_value
         self.simulation.resourceLevels = [food_value]
 
-    def collect(self):
+    def _collect(self):
         [prey_i, predator_i] = self.simulation.getEntities()
         [food_i] = [self.simulation.getResources()]
         [food_decision_i, water_decision] = self.decision
@@ -44,9 +46,11 @@ class SimulationView:
         self.K += 1
 
     def step(self, resources):
-        self.supply(resources)
-        self.simulation.step()
-        self.collect()
+        self._supply(resources)
+        reward, done = self.simulation.step()
+        self._collect()
 
-    def reset(self, entities, resources):
+        return reward, done
+
+    def reset(self, entities=None, resources=None):
         self.__init__(entities, resources)

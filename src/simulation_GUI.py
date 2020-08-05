@@ -7,6 +7,8 @@ from matplotlib.widgets import Slider, Button
 import utils
 from simulation_view import SimulationView
 from simulation_model import SimulationModel
+from supervised_training import SupervisedTraining
+from sac_training import SACTraining
 
 
 def foodSliderToFood(value):
@@ -24,7 +26,11 @@ class SimulationGUI:
 
         self.A_agreeable_tick_size = [1, 2, 4, 5, 10, 20, 25, 40, 50, 75]
         self.sv = SimulationView([8000, 2000], [0.0, 0.0])
-        self.sm = SimulationModel(self.sv.simulation.get_inversion())
+        #self.sm = SimulationModel(
+        #    SupervisedTraining(self.sv.simulation.get_inversion()))
+
+        self.sm = SimulationModel(
+            SACTraining(self.sv))
 
         self.marker_index = -1
 
@@ -119,7 +125,7 @@ class SimulationGUI:
         self.food_slider.set_val(value)
 
     def predict_step(self):
-        obs = self.sv.get()
+        obs, _ = self.sv.get() # TODO INCLUDE RESOURCES
         obs_scaled = [((math.log(o, 10) - 1) / 6 if o > 0 else 0) for o in obs]
         action_scaled = self.sm.act(obs_scaled)  # TODO NORMALISATION AS FUNCTION
         action_slider = [a * 6 + 1 for a in action_scaled]
@@ -152,8 +158,8 @@ class SimulationGUI:
 
         self.sv.reset(entities, resources)
         prediction = self.predict_step()
-        self.sv.supply([prediction[0], 0])
-        self.sv.collect()
+#        self.sv.supply([prediction[0], 0])
+#        self.sv.collect()
         self.plot()
 
     def handle_pressed_keyboard(self, event):

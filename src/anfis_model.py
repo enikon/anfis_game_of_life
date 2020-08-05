@@ -7,9 +7,9 @@ def backward_pass(model, inputs, outputs):
         result = model(inputs)
         loss_result = model.loss(outputs, result)
 
-    # Compute gradients
-    trainable_vars = model.trainable_variables
-    gradients = tape.gradient(loss_result, trainable_vars)
+        # Compute gradients
+        trainable_vars = model.trainable_variables
+        gradients = tape.gradient(loss_result, trainable_vars)
 
     # Update weights
     model.optimizer.apply_gradients(zip(gradients, trainable_vars))
@@ -76,3 +76,44 @@ def train_anfis(models, inputs, outputs, epochs, batch_size, learning_rate):
         forward_step(models, inputs, outputs, learning_rate=learning_rate)
         for j in range(num_batches):
             backward_pass(models["anfis"], batched_inputs[j], batched_outputs[j])
+
+
+def train_sac(models, epochs, max_steps, simulation, learning_rate):
+
+    running_reward = 0
+    for i in range(epochs):
+        print("epoch: ", i)
+        simulation.reset()
+        episode_reward = 0
+
+        action_probs_history = []
+        critic_value_history = []
+        rewards_history = []
+
+        for step in range(0, max_steps):
+
+            state = tf.convert_to_tensor(simulation.get()[0])
+            state = tf.expand_dims(state, 0)
+
+            # Predict action probabilities and estimated future rewards
+            # from environment state
+            actions, critic_value = models['sac'](state)
+            critic_value_history.append(critic_value[0, 0])
+
+            # Sample action from action probability distribution
+            action_probs_history.append(tf.math.log(actions[0, 0]))
+
+            # Apply the sampled action in our environment
+            reward, done = simulation.step(actions[0, 0])
+            rewards_history.append(reward)
+            episode_reward += reward
+
+            if done:
+                break
+        # Update running reward to check condition for solving
+        running_reward = 0.05 * episode_reward + (1 - 0.05) * running_reward
+
+        #forward_step(models, inputs, outputs, learning_rate=learning_rate)
+        backward_pass(models["sac"],
+                      zip(rewards_history, [0]*len(rewards_history)),
+                      zip(action_probs_history, critic_value_history))
