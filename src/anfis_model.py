@@ -1,4 +1,7 @@
 import tensorflow as tf
+import numpy as np
+from scipy.stats import truncnorm
+from sklearn.model_selection import train_test_split
 
 
 @tf.function
@@ -80,40 +83,74 @@ def train_anfis(models, inputs, outputs, epochs, batch_size, learning_rate):
 
 def train_sac(models, epochs, max_steps, simulation, learning_rate):
 
+    #deterministic random
+    np.random.seed(0)
+
+    gamma = 0.05
+    history = []
+
+    update_counter_step = 500
+    update_counter_limit = 1000
+
     running_reward = 0
     for i in range(epochs):
         print("epoch: ", i)
         simulation.reset()
         episode_reward = 0
 
-        action_probs_history = []
-        critic_value_history = []
-        rewards_history = []
-
         for step in range(0, max_steps):
 
-            state = tf.convert_to_tensor(simulation.get()[0])
-            state = tf.expand_dims(state, 0)
+            # ---------------------------
+            # Observe state s and select action according to current policy
+            # ---------------------------
 
-            # Predict action probabilities and estimated future rewards
-            # from environment state
-            actions, critic_value = models['sac'](state)
-            critic_value_history.append(critic_value[0, 0])
+            # Get simulation state
+            state = simulation.get_normalised()
+            state_tf = tf.convert_to_tensor(state)
 
-            # Sample action from action probability distribution
-            action_probs_history.append(tf.math.log(actions[0, 0]))
+            # Get actions distribution from current model
+            # and their approx value from critic
+            actions_dist = models['actor'](state_tf).numpy().reshape((-1, 2))
 
-            # Apply the sampled action in our environment
-            reward, done = simulation.step(actions[0, 0])
-            rewards_history.append(reward)
+            # Choose from action by sampling probability distribution
+            #actions = np.tanh([
+            #    mi + np.random.normal(loc=0.0, scale=1.0)*np.exp(sig) for mi, sig in actions_dist
+            #])
+            actions = [truncnorm.rvs(truncate(mi, sig, 0, 1)) for mi, sig in actions_dist]
+
+            # ---------------------------
+            # Execute action in the environment
+            # ---------------------------
+            reward, done = simulation.step_normalised(actions)
             episode_reward += reward
+
+            # ---------------------------
+            # Observe next state
+            # ---------------------------
+
+            state_l = simulation.get_normalised()
+
+            # ---------------------------
+            # Store information in replay buffer
+            # ---------------------------
+
+            history.append((state, actions, reward, state_l, done))
 
             if done:
                 break
         # Update running reward to check condition for solving
-        running_reward = 0.05 * episode_reward + (1 - 0.05) * running_reward
+        running_reward = gamma * episode_reward + (1 - gamma) * running_reward
 
-        #forward_step(models, inputs, outputs, learning_rate=learning_rate)
-        backward_pass(models["sac"],
-                      zip(rewards_history, [0]*len(rewards_history)),
-                      zip(action_probs_history, critic_value_history))
+        # ---------------------------
+        # Updating network
+        # ---------------------------
+        if len(history) > update_counter_limit:
+            history_tmp, experience = train_test_split(history, test_size=update_counter_step)
+            history = history_tmp
+
+            for i in experience:
+                pass
+
+
+def truncate(mi, sig, f_min, f_max):
+    return (f_min - mi) / sig, (f_max - mi) / sig

@@ -31,3 +31,7 @@ def significantFormat(value):
 
 def float2log10int(value):
     return int(round(10 ** value, 4))
+
+
+def log10int2float(value):
+    return math.log10(value)

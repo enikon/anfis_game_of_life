@@ -49,3 +49,16 @@ class SacHuberLoss:
         d=0
         d+=1
         return rewards
+
+        # @tf.function
+
+
+class LogLoss:
+    def __init__(self, delta):
+        self.delta = delta
+
+    def log_loss(self, truth, predicted):
+        out = tf.clip_by_value(predicted, 1e-8, 1-1e-8)
+        prob = truth * tf.math.log(out)
+
+        return tf.math.reduce_sum(-prob * self.delta)

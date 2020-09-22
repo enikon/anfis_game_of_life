@@ -18,6 +18,13 @@ def foodSliderToFood(value):
     return food_set
 
 
+def foodToFoodSlider(value):
+    food_set = 0
+    if value > 0.0:
+        food_set = utils.log10int2float(value)
+    return food_set
+
+
 class SimulationGUI:
     def __init__(self):
         # ///////////////
@@ -125,24 +132,18 @@ class SimulationGUI:
         self.food_slider.set_val(value)
 
     def predict_step(self):
-        obs, _ = self.sv.get() # TODO INCLUDE RESOURCES
-        obs_scaled = [((math.log(o, 10) - 1) / 6 if o > 0 else 0) for o in obs]
-        action_scaled = self.sm.act(obs_scaled)  # TODO NORMALISATION AS FUNCTION
-        action_slider = [a * 6 + 1 for a in action_scaled]
+        obs, _ = self.sv.get_normalised() # TODO INCLUDE RESOURCES
+        action_scaled = self.sm.act(obs)
+        action_slider = self.sv.nominalise(action_scaled)
+
         self.setSlider(action_slider[0])
 
-        return [10**action_slider_i for action_slider_i in action_slider]
+        return action_slider
 
     def next_step(self, event, **kwargs):
         count = kwargs.get('count', 1)
         for i in range(count):
-            # TODO MAKE MORE PRIVATE FIELDS/METHODS IN CLASSES
-
-            # TODO GUI VALUE 1.0-7.0
-            # TODO GUI->INTERF 10K
-            # TODO GUI->SIM 10K
-            # TODO GUI->MODEL 0-1
-            food = foodSliderToFood(self.food_slider.val)  # TODO NORMALISATION AS FUNCTION
+            food = foodSliderToFood(self.food_slider.val)
             self.sv.step([food, 0])
 
             # TODO NORMALISATION INSIDE SM.ACT SM.ACT INTO NEW METHOD SM.DECIDE???

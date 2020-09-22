@@ -58,7 +58,11 @@ class SimState:
         ent, res = self.step_function(self.entityCount, self.resourceLevels)
         self.resourceLevels = res
         self.entityCount = ent
-        return self
+
+        reward = 1.0
+        if self.entityCount[1] != 0.0:
+            reward = 1.0 - (math.log10(self.entityCount[1]) - 1)/6
+        return reward, False
 
     def step_function(self, entities, resources):
 
