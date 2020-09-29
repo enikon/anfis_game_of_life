@@ -1,4 +1,4 @@
-from simulation import SimState
+from src.simulation.simulation import SimState
 import numpy as np
 import math
 
@@ -18,6 +18,7 @@ class SimulationView:
 
         self.linear = np.empty(shape=0)
         self.K = 0
+        self.step_counter = 0
 
         self._collect()
 
@@ -31,10 +32,10 @@ class SimulationView:
         ]
 
     def _supply(self, resources):
-        self.decision = resources.copy()
+        self.decision = [resources[0]]
 
         # self.simulation.resourceLevels[0] += food_value
-        self.simulation.resourceLevels = resources.copy()
+        self.simulation.resourceLevels = [resources[0]]
 
     def _collect(self):
         [prey_i, predator_i] = self.simulation.getEntities()
@@ -51,13 +52,24 @@ class SimulationView:
         self._supply(resources)
         reward, done = self.simulation.step()
         self._collect()
+        self.step_counter += 1
         return reward, done
 
-    def step_normalised(self, resources):
+    def step_nominalised(self, resources):
         return self.step([self.__nominalisation_function(r) for r in resources])
 
     def reset(self, entities=None, resources=None):
+        if entities is None:
+            a = np.random.uniform(2.0, 5.0)
+            b = np.random.uniform(1.0, a - 0.3)
+            entities = [10 ** a, 10 ** b]
+        if resources is None:
+            c = [0, 0]
+            resources = c
         self.__init__(entities, resources)
+
+    def restart(self):
+        self.__init__(None, None)
 
     @staticmethod
     def __normalisation_function(x):

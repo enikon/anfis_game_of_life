@@ -1,27 +1,38 @@
 from typing import Any, Tuple
-import math
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.widgets import Slider, Button
+from mpl_toolkits.mplot3d import Axes3D
+import tensorflow as tf
 
-import utils
-from simulation_view import SimulationView
-from simulation_model import SimulationModel
-from supervised_training import SupervisedTraining
-from sac_training import SACTraining
+from src.simulation.simulation_view import SimulationView
+from src.model.network_model import NetworkModel
+from src.model.sac_training import SACTraining
+from src.model.supervised_training import SupervisedTraining
+
+import math
+import src.simulation.utils as utils
+
+Axes3D = Axes3D  # pycharm auto import
+
+# reset console, just in case
+tf.keras.backend.clear_session()
+
+np.random.seed(1)
+np.set_printoptions(precision=3, suppress=True)
 
 
 def foodSliderToFood(value):
     food_set = 0
-    if value >= 1.0:
-        food_set = utils.float2log10int(value)
+    if value >= 0:
+        food_set = 10.0 ** (value * 6.0 + 1.0)
     return food_set
 
 
 def foodToFoodSlider(value):
-    food_set = 0
+    food_set = -1e-3
     if value > 0.0:
-        food_set = utils.log10int2float(value)
+        food_set = (math.log10(value) - 1.0)/6.0
     return food_set
 
 
@@ -33,10 +44,8 @@ class SimulationGUI:
 
         self.A_agreeable_tick_size = [1, 2, 4, 5, 10, 20, 25, 40, 50, 75]
         self.sv = SimulationView([8000, 2000], [0.0, 0.0])
-        #self.sm = SimulationModel(
+        self.sm = NetworkModel(
         #    SupervisedTraining(self.sv.simulation.get_inversion()))
-
-        self.sm = SimulationModel(
             SACTraining(self.sv))
 
         self.marker_index = -1
@@ -66,7 +75,7 @@ class SimulationGUI:
         # //////////
 
         food_axis = plt.axes([0.05, 0.10, 0.85, 0.03], facecolor='lightgreen')
-        self.food_slider = Slider(food_axis, 'Food', 0.999, 7.0, valinit=0.0, facecolor='green', dragging=True)
+        self.food_slider = Slider(food_axis, 'Food', -1e-3, 1.0, valinit=0.0, facecolor='green', dragging=True)
 
         self.setSlider(self.food_slider.valinit)
         self.food_slider.on_changed(self.updateSlider)
@@ -133,18 +142,19 @@ class SimulationGUI:
 
     def predict_step(self):
         obs, _ = self.sv.get_normalised() # TODO INCLUDE RESOURCES
-        action_scaled = self.sm.act(obs)
-        action_slider = self.sv.nominalise(action_scaled)
+        proposed_action = self.sm.act(obs)
 
-        self.setSlider(action_slider[0])
+        self.setSlider(proposed_action[0])
 
-        return action_slider
+        return proposed_action
 
     def next_step(self, event, **kwargs):
         count = kwargs.get('count', 1)
         for i in range(count):
             food = foodSliderToFood(self.food_slider.val)
-            self.sv.step([food, 0])
+            reward, _ = self.sv.step([food, 0])
+
+            print('REWARD', reward)
 
             # TODO NORMALISATION INSIDE SM.ACT SM.ACT INTO NEW METHOD SM.DECIDE???
             self.predict_step()
@@ -152,16 +162,20 @@ class SimulationGUI:
         self.plot()
         plt.draw()
 
-    def reset(self, entities=None, resources=None):
+    def _reset(self, function):
         self.marker_index = 0
         self.first_plot.cla()
         self.second_plot.cla()
 
-        self.sv.reset(entities, resources)
+        function()
         prediction = self.predict_step()
-#        self.sv.supply([prediction[0], 0])
-#        self.sv.collect()
         self.plot()
+
+    def reset(self):
+        self._reset(self.sv.reset)
+
+    def restart(self):
+        self._reset(self.sv.restart)
 
     def handle_pressed_keyboard(self, event):
         # /////////
@@ -174,12 +188,12 @@ class SimulationGUI:
         if event.key == ',':
             self.next_step(event, count=100)
         if event.key == 'r':
-            a = np.random.uniform(2.0, 5.0)
-            b = np.random.uniform(1.0, a - 0.3)
-            self.reset([10 ** a, 10 ** b], [0, 0])
+            self.reset()
+        if event.key == 'k':
+            self.restart()
 
     def run(self):
-        self.reset([8000, 2000], [0, 0])
+        self.reset()
         plt.show()
 
 

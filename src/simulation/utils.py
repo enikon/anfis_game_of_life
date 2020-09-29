@@ -28,10 +28,3 @@ def significantFormat(value):
     magnitude = int(math.floor(math.log(value, k)))
     return '%.3g%s' % (value / k**magnitude, units[magnitude])
 
-
-def float2log10int(value):
-    return int(round(10 ** value, 4))
-
-
-def log10int2float(value):
-    return math.log10(value)

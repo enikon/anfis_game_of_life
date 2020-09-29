@@ -1,8 +1,8 @@
-from training import Training
+from src.model.training import Training
 import numpy as np
 import math
 import tensorflow as tf
-from anfis_model import train_anfis
+import src.anfis.anfis_model as anfis_model
 import matplotlib.pyplot as plt
 
 
@@ -16,7 +16,10 @@ class SupervisedTraining(Training):
         self.parameters_sets_total_count = 0
         self.parameters_count = 0
 
-    def train(self, simulation_model):
+        self.epochs = 500
+        self.learning_rate = 1e-5
+
+    def train(self, simulation_model, **kwargs):
         self.models = simulation_model.models
         self.parameters_count = simulation_model.parameters_count
         self.parameters_sets_count = simulation_model.parameters_sets_count
@@ -25,7 +28,21 @@ class SupervisedTraining(Training):
         din, dout = self._generate_dataset(1024)
         tin, tout = self._generate_dataset(32)
 
-        dpd, tpd = self._fit_predict_test(din, dout, tin, tout)
+        hybrid = kwargs.get('hybrid', True)
+
+        if hybrid:
+            dpd, tpd = self._fit_predict_test(din, dout, tin, tout) # TODO FIX THIS MESS
+        else:
+            print('GD Everywhere')
+            self.models['anfis'].fit(din, dout, epochs=self.epochs, shuffle=True,
+                                     callbacks=[tf.keras.callbacks.EarlyStopping(
+                                         monitor='loss',
+                                         patience=5,
+                                         min_delta=1e-3
+                                     )])
+            dpd = self.models['anfis'].predict(din)
+            tpd = self.models['anfis'].predict(tin)
+
         self._plot(din, dout, dpd, tin, tout, tpd)
 
     def _generate_dataset(self, input_data_size):
@@ -51,9 +68,10 @@ class SupervisedTraining(Training):
         # ------------
         # TRAINING
         # ------------
-        train_anfis(self.models, data_input, data_output,
-                    epochs=10, batch_size=32,
-                    learning_rate=1 - 1e-3)
+        self.train_anfis(
+            self.models, data_input, data_output,
+            epochs=self.epochs,
+            learning_rate=self.learning_rate)
         # ------------
         # PREDICTING
         # ------------
@@ -120,7 +138,32 @@ class SupervisedTraining(Training):
                 j += self.parameters_sets_count[t]
 
             # bell function
-            ax[t // mf_cols][t % mf_cols].plot(mf_x,
-                                               1.0 / (1.0 + (((mf_x - mf_c[i]) / mf_a[i]) ** 2) ** (1.0 / mf_b[i])))
-
+            ax[t // mf_cols][t % mf_cols].plot(
+                mf_x,
+                1.0 / (1.0 + (((mf_x - mf_c[i]) / mf_a[i]) ** 2) ** (1.0 / mf_b[i])))
         plt.show()
+
+    def train_anfis(self, models, inputs, outputs, epochs, batch_size, learning_rate):
+        input_size = inputs.shape[0]
+        indices = tf.range(start=0, limit=input_size, dtype=tf.int32)
+
+        batches_number = input_size // batch_size
+        rest = input_size % batch_size
+        split = [batch_size] * batches_number + ([rest] if rest > 0 else [])
+
+        for i in range(epochs):
+            print("epoch: ", i)
+            #Shuffle inputs before batching
+            shuffled_indices = tf.random.shuffle(indices)
+
+            shuffled_inputs  = tf.gather(inputs, shuffled_indices)
+            shuffled_outputs = tf.gather(outputs, shuffled_indices)
+
+            #Split to batches
+            batched_inputs = tf.split(shuffled_inputs, split, axis=0)
+            batched_outputs = tf.split(shuffled_outputs, split, axis=0)
+            num_batches = len(batched_inputs)
+
+            anfis_model.forward_step(models, inputs, outputs, learning_rate=learning_rate)
+            for j in range(num_batches):
+                anfis_model.backward_pass(models["anfis"], batched_inputs[j], batched_outputs[j])

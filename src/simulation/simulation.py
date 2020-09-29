@@ -59,10 +59,12 @@ class SimState:
         self.resourceLevels = res
         self.entityCount = ent
 
-        reward = 1.0
-        if self.entityCount[1] != 0.0:
-            reward = 1.0 - (math.log10(self.entityCount[1]) - 1)/6
-        return reward, False
+        ec0 = (math.log10(self.entityCount[0]) - 1) / 6 if self.entityCount[0] > 0.0 else 0.0
+        ec1 = (math.log10(self.entityCount[1]) - 1) / 6 if self.entityCount[1] > 0.0 else 0.0
+
+        reward = (1.0-ec1)**4 * ec0
+
+        return reward, ec0 == 0.0 and ec1 == 0.0
 
     def step_function(self, entities, resources):
 
@@ -172,15 +174,22 @@ class SimState:
             if food <= 0:
                 food = 0
 
-            print("STEP FROM", [num_prey, num_pred])
-            print("STEP TO", self.step_function([num_prey, num_pred], [food]))
+            #print("STEP FROM", [num_prey, num_pred])
+            #print("STEP TO", self.step_function([num_prey, num_pred], [food]))
 
-            npy, npd = self.step_function([num_prey, num_pred], [food])
+            _, _ = self.step_function([num_prey, num_pred], [food])
 
             if food <= 10:
                 food = 0
             else:
-                food = (math.log(food, 10)-1.0)/6
-            return food
+                food = (math.log(food, 10)-1.0)/6.0
 
+            if math.isnan(food):
+                food = 0.0
+            if food > 1.0:
+                food = 1.0
+            if food < 0.0:
+                food = 0.0
+
+            return food
         return func

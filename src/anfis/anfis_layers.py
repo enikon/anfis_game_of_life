@@ -39,7 +39,10 @@ class FuzzificationLayer(layers.Layer):
         if input_shape[1] < 1:
             raise Exception('FuzzificationLayer', '\'input_shape\' must be at least 1.')
         len_ud = len(self.fuzzy_sets_count)
-        if input_shape[1] > len_ud:
+        if input_shape[1] < len_ud:
+            raise Exception('FuzzificationLayer', '\'fuzzy_set_count\' {} but should be at least the size of the input \
+                                                  but it should be {}'.format(self.fuzzy_sets_count, input_shape[1], len_ud))
+        elif input_shape[1] > len_ud:
             self.units = np.sum(self.fuzzy_sets_count) + self.fuzzy_sets_count[len_ud - 1] * (input_shape[1] - len_ud)
         elif input_shape[1] == len_ud:
             self.units = np.sum(self.fuzzy_sets_count)
@@ -179,7 +182,7 @@ class SumNormalisationLayer(layers.Layer):
 
 
 class DefuzzificationLayer(layers.Layer):
-    def __init__(self, summation_enabled=True, **kwargs):
+    def __init__(self, summation_enabled=True, hybrid=True, **kwargs):
         """Defuzzification layer for ANFIS.
 
             Args:
@@ -193,6 +196,7 @@ class DefuzzificationLayer(layers.Layer):
         """
         super(DefuzzificationLayer, self).__init__(**kwargs)
 
+        self.hybrid_learning = hybrid
         self.summation_enabled = summation_enabled
         self.units = None
         self.input_values = None
@@ -214,10 +218,10 @@ class DefuzzificationLayer(layers.Layer):
         self.units = rule_strength_shape[1]
         self.input_values = input_values_shape[1]+1
 
-        self.p = self.add_weight(shape=(self.units, self.input_values), trainable=False,
+        self.p = self.add_weight(shape=(self.units, self.input_values), trainable=not self.hybrid_learning,
                                  initializer=initializers.constant(value=1.0/self.input_values),
                                  #constraint=constraints.MinMaxNorm(min_value=-1.0, max_value=1.0),
-                                 regularizer=tf.keras.regularizers.l2(l=0.5))
+                                 regularizer=tf.keras.regularizers.l2(l=0.005))
         # self.p = self.add_weight(shape=(self.units, 1 + self.input_values), trainable=False,
         #                          initializer=initializers.glorot_normal(),
         #                          constraint=constraints.MinMaxNorm(min_value=-1.0, max_value=1.0))
@@ -235,10 +239,12 @@ class DefuzzificationLayer(layers.Layer):
 
         node_value = tf.multiply(inputs[1], coefficient)
 
+        vals = None
         if not self.summation_enabled:
-            return node_value
+            vals = node_value
         else:
-            return tf.reduce_sum(node_value, axis=1, keepdims=True)
+            vals = tf.reduce_sum(node_value, axis=1, keepdims=True)
+        return vals
 
     def get_config(self):
         # for serialisation only, in case we want to save model directly
