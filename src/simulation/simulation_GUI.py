@@ -17,6 +17,9 @@ Axes3D = Axes3D  # pycharm auto import
 
 # reset console, just in case
 tf.keras.backend.clear_session()
+tf.keras.backend.set_floatx('float64')
+physical_devices = tf.config.list_physical_devices('GPU')
+tf.config.experimental.set_memory_growth(physical_devices[0], True)
 
 np.random.seed(1)
 np.set_printoptions(precision=3, suppress=True)

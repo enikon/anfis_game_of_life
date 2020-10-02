@@ -73,13 +73,13 @@ class SimulationView:
 
     @staticmethod
     def __normalisation_function(x):
-        t = max(10.0, min(1000000.0, x))
-        return (math.log10(t) - 1) / 6
+        t = max(10.0, min(1e6, x))
+        return (math.log10(t) - 4.0) / 3.0
 
     @staticmethod
     def __nominalisation_function(x):
         t = max(0.0, min(1.0, x))
-        return 10 ** (t * 6 + 1)
+        return 10 ** (t * 3.0 + 4.0)
 
     def nominalise(self, x):
         return self.__nominalisation_function(x)

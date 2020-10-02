@@ -62,9 +62,13 @@ class SimState:
         ec0 = (math.log10(self.entityCount[0]) - 1) / 6 if self.entityCount[0] > 0.0 else 0.0
         ec1 = (math.log10(self.entityCount[1]) - 1) / 6 if self.entityCount[1] > 0.0 else 0.0
 
-        reward = (1.0-ec1)**4 * ec0
+        reward = ec1 * ec0
 
-        return reward, ec0 == 0.0 and ec1 == 0.0
+        extinction = ec0 == 0.0 or ec1 == 0.0
+        if extinction:
+            reward = -1.0
+
+        return reward, extinction
 
     def step_function(self, entities, resources):
 
