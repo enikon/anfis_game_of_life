@@ -15,6 +15,8 @@ class RESOURCES(Enum):
 
 class SimState:
     def __init__(self, entities=None, resources=None):
+        self.init_entities_0 = entities[0]
+        entities[1] = 0
 
         if entities is None:
             entities = [8000., 2000.]
@@ -62,11 +64,13 @@ class SimState:
         ec0 = (math.log10(self.entityCount[0]) - 1) / 6 if self.entityCount[0] > 0.0 else 0.0
         ec1 = (math.log10(self.entityCount[1]) - 1) / 6 if self.entityCount[1] > 0.0 else 0.0
 
-        reward = ec1 * ec0
+        #reward = 1.0 - math.fabs((math.log10(max(10, self.init_entities_0)) - 1) / 6 - ec0)
+        reward = 1.0 - math.fabs((math.log10(max(10, 4000)) - 1) / 6 - (math.log10(max(10, res[0])) - 1) / 6)
 
-        extinction = ec0 == 0.0 or ec1 == 0.0
-        if extinction:
-            reward = -1.0
+        #extinction = ec0 == 0.0 #or ec1 == 0.0
+        #if extinction:
+        #    reward = -100.0
+        extinction = False
 
         return reward, extinction
 
@@ -96,10 +100,10 @@ class SimState:
 
     def step_loop_function(self, entities, resources):
         # zero counts
-        futureBalance = [0. for j in range(len(entities))]  # what will be
-        huntCount = [0. for j in range(len(entities))]  # how much it killed
-        huntedCount = [0. for j in range(len(entities))]  # how much was killed
-        resourcesDemand = [0. for r in range(len(resources))]  # how much of a resource is used up
+        futureBalance = [0. for _ in range(len(entities))]  # what will be
+        huntCount = [0. for _ in range(len(entities))]  # how much it killed
+        huntedCount = [0. for _ in range(len(entities))]  # how much was killed
+        resourcesDemand = [0. for _ in range(len(resources))]  # how much of a resource is used up
 
         # update hunting & resource usage for all species
         for j in range(len(entities)):

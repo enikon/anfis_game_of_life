@@ -3,6 +3,7 @@ import math
 
 def findFairTick(K, N, A):
     r = K*1.0/N
+    r = max(r, 1.0)
     p = int(round(math.log10(r)/2, 4))    # float safe # log100() = log10()/2
     #if p < 1:
     #    return 1

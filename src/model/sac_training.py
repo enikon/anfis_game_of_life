@@ -1,9 +1,7 @@
 from src.model.training import Training
-# import math
 import numpy as np
 import tensorflow as tf
 from src.constructs.experience_holder import ExperienceHolder
-# import tensorflow_probability as tfp
 
 
 class SACTraining(Training):
@@ -16,12 +14,12 @@ class SACTraining(Training):
         self.parameters_sets_total_count = 0
         self.parameters_count = 0
 
-        self.gamma = 0.99
-        self.alpha = 0.02
+        self.gamma = 0.75
+        self.alpha = 0.000001
         self.beta = 0.003
-        self.tau = 0.01
+        self.tau = 0.02
 
-        self.experience = ExperienceHolder(capacity=10000, cells=5)  # state, action, reward, state', done
+        self.experience = ExperienceHolder(capacity=1000000, cells=5)  # state, action, reward, state', done
 
     def train(self, simulation_model, **kwargs):
         self.models = simulation_model.models
@@ -31,25 +29,33 @@ class SACTraining(Training):
 
         self.train_sac(
             self.models,
-            epochs=30, max_steps=150, simulation=self.environment)
+            epochs=1000, max_steps=100, experience_batch=4000, simulation=self.environment)
 
-    def train_sac(self, models, epochs, max_steps, simulation):
+    def train_sac(self, models, epochs, max_steps, experience_batch, simulation):
 
         # deterministic random
         np.random.seed(0)
 
         history = []
-        epoch_steps = 1500
-
+        epoch_steps_ = 50
+        simulation.reset()
         update_net(models['critic-v'], models['critic-v-t'], 1.0)
+        init = True
 
         for i in range(epochs):
             print("epoch: ", i)
-            simulation.reset()
             episode_reward = 0
+            reset = False
+            if init:
+                epoch_steps = experience_batch+1000
+                init = False
+            else:
+                epoch_steps = epoch_steps_
+            j = 0
 
-            for _ in range(0, epoch_steps):
-
+            while not(j > epoch_steps):# and reset):
+                j += 1
+                reset = False
                 # ---------------------------
                 # Observe state s and select action according to current policy
                 # ---------------------------
@@ -63,7 +69,7 @@ class SACTraining(Training):
 
                 # Get actions distribution from current model
                 # and their approx value from critic
-                actions_tf, _ = models['actor'](state_tf)
+                actions_tf, _, _ = models['actor'](state_tf)
                 actions = list(actions_tf.numpy()[0])
 
                 # ---------------------------
@@ -87,12 +93,13 @@ class SACTraining(Training):
 
                 if done or simulation.step_counter > max_steps:
                     simulation.reset()
+                    reset = True
 
             # ---------------------------
             # Updating network
             # ---------------------------
-            if self.experience.size() > 500:  # update_counter_limit:
-                exp = self.experience.replay(int(self.experience.size() * 0.8))
+            if self.experience.size() > experience_batch+1000:  # update_counter_limit:
+                exp = self.experience.replay(experience_batch)
                 states_tf = tf.convert_to_tensor(exp[0], dtype='float64')
                 actions_tf = tf.convert_to_tensor(exp[1], dtype='float64')
                 rewards_tf = tf.convert_to_tensor(exp[2], dtype='float64')
@@ -100,37 +107,32 @@ class SACTraining(Training):
                 not_dones_tf = tf.convert_to_tensor(exp[4], dtype='float64')
 
                 with tf.GradientTape(watch_accessed_variables=True, persistent=True) as tape:
-                    # tf.GradientTape(watch_accessed_variables=False) as tape_a,\
-                    #  tf.GradientTape(watch_accessed_variables=False) as tape_q,\
-                    #  tf.GradientTape(watch_accessed_variables=False) as tape_v, \
 
-                    q_current = models['critic-q']([states_tf, actions_tf])
+                    q_1_current = models['critic-q-1']([states_tf, actions_tf])
+                    q_2_current = models['critic-q-2']([states_tf, actions_tf])
                     v_l_current = models['critic-v-t'](states_l_tf)
 
                     q_target = tf.stop_gradient(rewards_tf + not_dones_tf * self.gamma * v_l_current)
-                    q_loss = tf.reduce_mean((q_target - q_current) ** 2)
+                    q_1_loss = tf.reduce_mean((q_target - q_1_current) ** 2)
+                    q_2_loss = tf.reduce_mean((q_target - q_2_current) ** 2)
 
                     v_current = models['critic-v'](states_tf)
-                    actions, policy_loss = models['actor'](states_tf)
-                    q_current = models['critic-q']([states_tf, actions_tf])
-                    v_target = tf.stop_gradient(q_current - self.alpha * policy_loss)
+                    actions, policy_loss, sigma = models['actor'](states_tf)
+                    q_1_policy = models['critic-q-1']([states_tf, actions_tf])
+                    q_2_policy = models['critic-q-2']([states_tf, actions_tf])
+                    q_min_policy = tf.minimum(q_1_policy, q_2_policy)
+
+                    v_target = tf.stop_gradient(q_min_policy - self.alpha * policy_loss)
                     v_loss = tf.reduce_mean((v_target - v_current)**2)
 
-                    a_loss = tf.reduce_mean(self.alpha * policy_loss - q_current)
+                    a_loss = tf.reduce_mean(self.alpha * policy_loss - q_min_policy)
 
-                q_grads = tape.gradient(q_loss, models['critic-q'].trainable_variables)
-                models['critic-q'].optimizer.apply_gradients(
-                    zip(q_grads, self.models['critic-q'].trainable_variables))
-
-                v_grads = tape.gradient(v_loss, models['critic-v'].trainable_variables)
-                models['critic-v'].optimizer.apply_gradients(
-                    zip(v_grads, models['critic-v'].trainable_variables))
-
+                backward(tape, models['critic-q-1'], q_1_loss)
+                backward(tape, models['critic-q-2'], q_2_loss)
+                backward(tape, models['critic-v'], v_loss)
                 update_net(models['critic-v'], models['critic-v-t'], self.tau)
 
-                a_grads = tape.gradient(a_loss, models['actor'].trainable_variables)
-                models['actor'].optimizer.apply_gradients(
-                    zip(a_grads, models['actor'].trainable_variables))
+                backward(tape, models['actor'], a_loss)
 
                 del tape
                 #
@@ -180,11 +182,17 @@ class SACTraining(Training):
                 #
                 #     al = custom_loop(actor_update, models['actor'], states_tf, tape_a, target=False)
                 #
-                print('Loss:\n\tvalue: {}\n\tq    : {}\n\tactor (ascent): {}'.format(
+                print('Loss:\n\tvalue: {}\n\tq1   : {}\n\tq2   : {}\n\tactor (ascent): {}'.format(
                      tf.reduce_mean(v_loss),
-                     tf.reduce_mean(q_loss),
+                     tf.reduce_mean(q_1_loss),
+                     tf.reduce_mean(q_2_loss),
                      tf.reduce_mean(a_loss) #Gradient ascent
+
                 ))
+                print('Episode Reward: {}'.format(episode_reward))
+                print('Batch sigma: {}'.format(tf.reduce_mean(sigma)))
+                print('PolicyLoss sigma: {}'.format(tf.reduce_mean(policy_loss)))
+
                 #
                 # update_net(models['critic-v'], models['critic-v-t'], self.tau)
 
@@ -203,9 +211,9 @@ class SACTraining(Training):
 
 
 def update_net(model, target, tau):
-    len_vars = len(model.trainable_variables)
+    len_vars = len(model.weights)
     for i in range(len_vars):
-        target.trainable_variables[i] = tau * model.trainable_variables[i] + (1.0 - tau) * target.trainable_variables[i]
+        target.weights[i].assign(tau * model.weights[i] + (1.0 - tau) * target.weights[i])
 
 # def choose_action(mu, sig, with_loss=True):
 #
@@ -229,3 +237,9 @@ def update_net(model, target, tau):
 #     return choose_action(mu_tf, sig_tf, with_loss=True)
 #
 #
+
+
+def backward(tape, model, loss):
+    grads = tape.gradient(loss, model.trainable_variables)
+    model.optimizer.apply_gradients(
+        zip(grads, model.trainable_variables))
