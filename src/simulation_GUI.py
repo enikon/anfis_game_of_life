@@ -5,6 +5,8 @@ import matplotlib.pyplot as plt
 from matplotlib.widgets import Slider, Button
 
 import utils
+from distillation.model import load_trained_model
+from simulation_model_2 import SimulationModel2
 from simulation_view import SimulationView
 from simulation_model import SimulationModel
 
@@ -24,7 +26,9 @@ class SimulationGUI:
 
         self.A_agreeable_tick_size = [1, 2, 4, 5, 10, 20, 25, 40, 50, 75]
         self.sv = SimulationView([8000, 2000], [0.0, 0.0])
-        self.sm = SimulationModel(self.sv.simulation.get_inversion())
+        # self.sm = SimulationModel(self.sv.simulation.get_inversion())
+        # self.sm = SimulationModel(load_trained_model())
+        self.sm = SimulationModel2()
 
         self.marker_index = -1
 
