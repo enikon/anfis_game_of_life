@@ -3,10 +3,10 @@ import math
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.widgets import Slider, Button
+from stable_baselines3 import PPO
 
 import utils
 from distillation.model import load_trained_model
-from simulation_model_2 import SimulationModel2
 from simulation_view import SimulationView
 from simulation_model import SimulationModel
 
@@ -27,8 +27,8 @@ class SimulationGUI:
         self.A_agreeable_tick_size = [1, 2, 4, 5, 10, 20, 25, 40, 50, 75]
         self.sv = SimulationView([8000, 2000], [0.0, 0.0])
         # self.sm = SimulationModel(self.sv.simulation.get_inversion())
-        # self.sm = SimulationModel(load_trained_model())
-        self.sm = SimulationModel2()
+        self.sm = SimulationModel(load_trained_model())
+        self.model = PPO.load("logs/best_model.zip")
 
         self.marker_index = -1
 
@@ -127,6 +127,8 @@ class SimulationGUI:
         obs_scaled = [((math.log(o, 10) - 1) / 6 if o > 0 else 0) for o in obs]
         action_scaled = self.sm.act(obs_scaled)  # TODO NORMALISATION AS FUNCTION
         action_slider = [a * 6 + 1 for a in action_scaled]
+        # action_scaled = self.model.predict(obs, deterministic=True)[0]
+        # action_slider = [math.log(a * 1e5, 10) for a in action_scaled]
         self.setSlider(action_slider[0])
 
         return [10**action_slider_i for action_slider_i in action_slider]
@@ -176,7 +178,7 @@ class SimulationGUI:
             self.reset([10 ** a, 10 ** b], [0, 0])
 
     def run(self):
-        self.reset([8000, 2000], [0, 0])
+        self.reset([5000, 10000], [0, 0])
         plt.show()
 
 
