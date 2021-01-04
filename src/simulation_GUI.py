@@ -25,10 +25,9 @@ class SimulationGUI:
         # ///////////////
 
         self.A_agreeable_tick_size = [1, 2, 4, 5, 10, 20, 25, 40, 50, 75]
-        self.sv = SimulationView([8000, 2000], [0.0, 0.0])
+        self.sv = SimulationView([5000, 10000, 12000], [0.0, 0.0])
         # self.sm = SimulationModel(self.sv.simulation.get_inversion())
-        self.sm = SimulationModel(load_trained_model())
-        self.model = PPO.load("logs/best_model.zip")
+        # self.sm = SimulationModel(load_trained_model())
 
         self.marker_index = -1
 
@@ -79,12 +78,14 @@ class SimulationGUI:
                              markersize=self.plt_mark_size)
         self.first_plot.plot(self.sv.linear, self.sv.predator, 'o-', color='red', linewidth=self.plt_line_width,
                              markersize=self.plt_mark_size)
-        self.first_plot.plot(self.sv.linear, self.sv.food_decision, 'o-', color='darkgreen',
+        self.first_plot.plot(self.sv.linear, self.sv.plant, 'o-', color='darkgreen', linewidth=self.plt_line_width,
+                             markersize=self.plt_mark_size)
+        self.first_plot.plot(self.sv.linear, self.sv.water_decision, 'o-', color='blue',
                              linewidth=self.plt_line_width,
                              markersize=self.plt_mark_size)
         self.first_plot.set_yscale("log")
 
-        ticks_range = max(np.max(self.sv.prey), np.max(self.sv.predator), np.max(self.sv.food))
+        ticks_range = max(np.max(self.sv.prey), np.max(self.sv.predator), np.max(self.sv.water))
         self.first_plot.set_xticks(
             ticks=np.arange(0, self.sv.K + 1, step=utils.findFairTick(self.sv.K, 10, self.A_agreeable_tick_size)))
         self.first_plot.tick_params(axis='x', labelrotation=self.x_ticks_rotation)
@@ -127,8 +128,6 @@ class SimulationGUI:
         obs_scaled = [((math.log(o, 10) - 1) / 6 if o > 0 else 0) for o in obs]
         action_scaled = self.sm.act(obs_scaled)  # TODO NORMALISATION AS FUNCTION
         action_slider = [a * 6 + 1 for a in action_scaled]
-        # action_scaled = self.model.predict(obs, deterministic=True)[0]
-        # action_slider = [math.log(a * 1e5, 10) for a in action_scaled]
         self.setSlider(action_slider[0])
 
         return [10**action_slider_i for action_slider_i in action_slider]
@@ -146,7 +145,7 @@ class SimulationGUI:
             self.sv.step([food, 0])
 
             # TODO NORMALISATION INSIDE SM.ACT SM.ACT INTO NEW METHOD SM.DECIDE???
-            self.predict_step()
+            # self.predict_step()
 
         self.plot()
         plt.draw()
@@ -157,8 +156,9 @@ class SimulationGUI:
         self.second_plot.cla()
 
         self.sv.reset(entities, resources)
-        prediction = self.predict_step()
-        self.sv.supply([prediction[0], 0])
+        # prediction = self.predict_step()
+        # self.sv.supply([prediction[0], 0])
+        self.sv.supply([0, 0])
         self.sv.collect()
         self.plot()
 
@@ -178,7 +178,7 @@ class SimulationGUI:
             self.reset([10 ** a, 10 ** b], [0, 0])
 
     def run(self):
-        self.reset([5000, 10000], [0, 0])
+        self.reset([5000, 10000, 12000], [0, 0])
         plt.show()
 
 

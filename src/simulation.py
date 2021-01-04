@@ -7,37 +7,40 @@ INF = float("inf")
 class ENTITIES(Enum):
     PREY = 0
     PREDATOR = auto()
+    PLANT = auto()
 
 
 class RESOURCES(Enum):
-    FOOD = 0
+    WATER = 0
 
 
 class SimState:
     def __init__(self, entities=None, resources=None):
 
         if entities is None:
-            entities = [8000., 2000.]
+            entities = [8000., 2000., 12000.]
         if resources is None:
             resources = [0.]
 
         self.huntedDoNotFeed = False  # remove killed animals before feeding phase
 
-        # entities: preyCount, predatorCount
+        # entities: preyCount, predatorCount, plantCount
         self.entityCount = entities
         self.resourceLevels = resources
         self.entityCrossMatrix = [
-            [(0.4, 0.1), (0.0, 0.0)],  # prey
-            [(0.00002, 1.0), (0.0, 0.2)]  # predator
+            [(0.0, 0.1), (0.0, 0.0), (0.00001, 1.0)],  # prey
+            [(0.00002, 1.0), (0.0, 0.2), (0.0, 0.0)],  # predator
+            [(0.0, 0.0), (0.0, 0.0), (0.2, 0.1)]  # plant
         ]
         # ECM[x][x] = (reproduction base with best conditions, absolute decline)
         # ECM[x][y] = (hunt factor (how many killed), consumption factor(how many bred from one killed)
         # y is eaten by x in xy0 chance and gives xy1 food
 
         self.resourceCrossMatrix = [
-            # food  #...
+            # water  #...
             [(1.0, 1.0)],  # prey
-            [(0.0, 0.0)]  # predator
+            [(1.0, 1.0)],  # predator
+            [(1.0, 1.0)],  # plant
         ]
         # RCM[x][y] = (significance for reproduction, competitive usage (how much is used))
         # x is under condition/resource y
