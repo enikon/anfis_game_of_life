@@ -1,5 +1,5 @@
-from enum import Enum, auto
 import math
+from enum import Enum, auto
 
 INF = float("inf")
 
@@ -18,7 +18,7 @@ class SimState:
     def __init__(self, entities=None, resources=None):
 
         if entities is None:
-            entities = [8000., 2000., 12000.]
+            entities = [6000., 7000., 12000.]
         if resources is None:
             resources = [0.]
 
@@ -29,7 +29,7 @@ class SimState:
         self.resourceLevels = resources
         self.entityCrossMatrix = [
             [(0.0, 0.1), (0.0, 0.0), (0.00001, 1.0)],  # prey
-            [(0.00002, 1.0), (0.0, 0.2), (0.0, 0.0)],  # predator
+            [(0.00002, 1.0), (0.0, 0.1), (0.0, 0.0)],  # predator
             [(0.0, 0.0), (0.0, 0.0), (0.2, 0.1)]  # plant
         ]
         # ECM[x][x] = (reproduction base with best conditions, absolute decline)
@@ -38,8 +38,8 @@ class SimState:
 
         self.resourceCrossMatrix = [
             # water  #...
-            [(1.0, 1.0)],  # prey
-            [(1.0, 1.0)],  # predator
+            [(INF, 0.2)],  # prey
+            [(INF, 0.5)],  # predator
             [(1.0, 1.0)],  # plant
         ]
         # RCM[x][y] = (significance for reproduction, competitive usage (how much is used))
@@ -65,7 +65,7 @@ class SimState:
 
     def step_function(self, entities, resources):
 
-        entityOutput   = [entities[j]  for j in range(len(entities))]  # what will be
+        entityOutput = [entities[j] for j in range(len(entities))]  # what will be
         resourceOutput = [resources[r] for r in range(len(resources))]  # how much of a resource is used up
 
         for i in range(int(1. / self.accuracy)):
@@ -132,7 +132,8 @@ class SimState:
                     else:
                         resourceInfluence = resources[r] * self.resourceCrossMatrix[j][r][0]
                         liebigBarrel = min(liebigBarrel,
-                                           (resourceInfluence / (resourcesDemand[r] + resourceInfluence))) if resourceInfluence > 0 else 0
+                                           (resourceInfluence / (resourcesDemand[
+                                                                     r] + resourceInfluence))) if resourceInfluence > 0 else 0
 
                 # applying Lotka-Volterra
                 futureBalance[j] = \
@@ -152,7 +153,7 @@ class SimState:
         return self.resourceLevels.copy()
 
     # TODO ADD ACCESS DECORATORS
-    #HEURISTIC
+    # HEURISTIC
     def get_inversion(self):
 
         def func(x):
@@ -160,13 +161,14 @@ class SimState:
             num_pred = int(math.pow(10, x[1] * 6 + 1))
 
             if num_prey < 10000:
-                food = -(num_prey*(num_prey*(num_pred-45000)+500000000))/(num_prey*(num_pred - 65000)+500000000)
+                food = -(num_prey * (num_prey * (num_pred - 45000) + 500000000)) / (
+                            num_prey * (num_pred - 65000) + 500000000)
                 if food <= 0:
-                    food = num_prey*num_prey/num_pred
+                    food = num_prey * num_prey / num_pred
                     if self.step_function([num_prey, num_pred], [food])[0][0] > 10000:
-                        food = (2.0 - num_prey/10000)*num_prey
+                        food = (2.0 - num_prey / 10000) * num_prey
             else:
-                food = -10000*(num_pred+5000)/(num_pred-15000)
+                food = -10000 * (num_pred + 5000) / (num_pred - 15000)
 
             if food <= 0:
                 food = 0
@@ -179,7 +181,7 @@ class SimState:
             if food <= 10:
                 food = 0
             else:
-                food = (math.log(food, 10)-1.0)/6
+                food = (math.log(food, 10) - 1.0) / 6
             return food
 
         return func

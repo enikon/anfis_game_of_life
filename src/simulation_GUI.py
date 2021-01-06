@@ -27,7 +27,7 @@ class SimulationGUI:
         self.A_agreeable_tick_size = [1, 2, 4, 5, 10, 20, 25, 40, 50, 75]
         self.sv = SimulationView([5000, 10000, 12000], [0.0, 0.0])
         # self.sm = SimulationModel(self.sv.simulation.get_inversion())
-        # self.sm = SimulationModel(load_trained_model())
+        self.sm = SimulationModel(load_trained_model())
 
         self.marker_index = -1
 
@@ -145,7 +145,7 @@ class SimulationGUI:
             self.sv.step([food, 0])
 
             # TODO NORMALISATION INSIDE SM.ACT SM.ACT INTO NEW METHOD SM.DECIDE???
-            # self.predict_step()
+            self.predict_step()
 
         self.plot()
         plt.draw()
@@ -156,9 +156,9 @@ class SimulationGUI:
         self.second_plot.cla()
 
         self.sv.reset(entities, resources)
-        # prediction = self.predict_step()
-        # self.sv.supply([prediction[0], 0])
-        self.sv.supply([0, 0])
+        prediction = self.predict_step()
+        self.sv.supply([prediction[0], 0])
+        # self.sv.supply([0, 0])
         self.sv.collect()
         self.plot()
 
@@ -178,7 +178,7 @@ class SimulationGUI:
             self.reset([10 ** a, 10 ** b], [0, 0])
 
     def run(self):
-        self.reset([5000, 10000, 12000], [0, 0])
+        self.reset([6000., 7000., 12000.], [0, 0])
         plt.show()
 
 

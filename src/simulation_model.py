@@ -19,8 +19,8 @@ np.set_printoptions(precision=3, suppress=True)
 class SimulationModel:
     def __init__(self, normalisation_function):
 
-        self.parameters_count = 2
-        self.parameters_sets_count = [3, 4]
+        self.parameters_count = 3
+        self.parameters_sets_count = [3, 3, 3]
         self.parameters_sets_total_count = sum(self.parameters_sets_count)
 
         self.debug = False
@@ -29,8 +29,8 @@ class SimulationModel:
 
         self.normalisation_function = normalisation_function
 
-        din, dout = self._generate_dataset(1024)
-        tin, tout = self._generate_dataset(32)
+        din, dout = self._generate_dataset(4096)
+        tin, tout = self._generate_dataset(128)
 
         dpd, tpd = self._fit_predict_test(din, dout, tin, tout)
         self._plot(din, dout, dpd, tin, tout, tpd)
@@ -70,8 +70,8 @@ class SimulationModel:
         din = []
         dout = []
         for i in range(input_data_size):
-            x = list(np.random.uniform(0.0, 1.0, size=2))
-            x.sort(reverse=True) #TODO BETTER GENERATOR
+            x = list(np.random.uniform(0.0, 1.0, size=3))
+            # x.sort(reverse=True) #TODO BETTER GENERATOR
             din.append(x)
             y = self.normalisation_function(x)
             dout.append([y])
@@ -91,8 +91,8 @@ class SimulationModel:
         # TRAINING
         # ------------
         train_anfis(self.models, data_input, data_output,
-                    epochs=10, batch_size=32,
-                    learning_rate=1 - 1e-3)
+                    epochs=100, batch_size=32,
+                    learning_rate=0.999)
         # ------------
         # PREDICTING
         # ------------
